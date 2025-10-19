@@ -15,3 +15,16 @@ Quick start (development):
 5. In `frontend/` run `npm install` then `npm start`.
 
 See `backend/README.md` and `frontend/README.md` for more details.
+
+Running seeds (backend):
+
+1. Ensure PostgreSQL is running (via `docker compose up -d`).
+2. From the project root, install backend deps and run the seed script:
+
+```powershell
+cd backend
+npm install
+npm run seed
+```
+
+This will create default departments, a report type, and initial users (admin/reviewer/approver/employee).
