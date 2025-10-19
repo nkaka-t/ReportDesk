@@ -1,0 +1,20 @@
+{
+  "name": "reportdesk-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test --env=jsdom",
+    "eject": "react-scripts eject"
+  },
+  "dependencies": {
+    "@mui/material": "^5.15.14",
+    "@mui/icons-material": "^5.11.16",
+    "axios": "^1.5.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-router-dom": "6.17.0",
+    "react-scripts": "5.0.1"
+  }
+}
