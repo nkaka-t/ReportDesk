@@ -11,10 +11,31 @@
   "dependencies": {
     "@mui/material": "^5.15.14",
     "@mui/icons-material": "^5.11.16",
+    "@emotion/react": "^11.11.0",
+    "@emotion/styled": "^11.11.0",
     "axios": "^1.5.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-router-dom": "6.17.0",
     "react-scripts": "5.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.2",
+    "@types/react": "^18.2.25",
+    "@types/react-dom": "^18.2.8",
+    "@types/react-router-dom": "^5.3.3"
+  },
+  "proxy": "http://localhost:4000",
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   }
 }
