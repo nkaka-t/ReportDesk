@@ -3,6 +3,10 @@ import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
+import EmployeeDashboard from './pages/EmployeeDashboard';
+import ReviewerDashboard from './pages/ReviewerDashboard';
+import ApproverDashboard from './pages/ApproverDashboard';
+import AdminDashboard from './pages/AdminDashboard';
 import { Container, AppBar, Toolbar, Typography, Button } from '@mui/material';
 
 export default function App(){
@@ -21,6 +25,10 @@ export default function App(){
           <Route path="/" element={<Dashboard/>} />
           <Route path="/login" element={<Login/>} />
           <Route path="/signup" element={<Signup/>} />
+          <Route path="/employee" element={<EmployeeDashboard/>} />
+          <Route path="/reviewer" element={<ReviewerDashboard/>} />
+          <Route path="/approver" element={<ApproverDashboard/>} />
+          <Route path="/admin" element={<AdminDashboard/>} />
         </Routes>
       </Container>
     </BrowserRouter>
