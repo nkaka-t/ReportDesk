@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { Department } = require('../models');
+const authenticate = require('../middleware/auth');
+const requireRole = require('../middleware/roles');
 
 // Create department (admin)
-router.post('/', async (req, res) => {
+router.post('/', authenticate, requireRole('admin'), async (req, res) => {
   try {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Name required' });
