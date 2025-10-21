@@ -11,12 +11,14 @@ const { sequelize } = require('./models');
 const authRoutes = require('./routes/auth');
 const deptRoutes = require('./routes/departments');
 const rtRoutes = require('./routes/reportTypes');
+const reportsRoutes = require('./routes/reports');
 
 app.get('/', (req, res) => res.json({status: 'ok', name: 'ReportDesk API'}));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/departments', deptRoutes);
 app.use('/api/report-types', rtRoutes);
+app.use('/api/reports', reportsRoutes);
 
 const start = async () => {
 	try {

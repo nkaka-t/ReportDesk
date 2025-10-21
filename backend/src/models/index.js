@@ -4,6 +4,7 @@ const Department = require('./department');
 const ReportType = require('./reportType');
 const Report = require('./report');
 const ReviewHistory = require('./reviewHistory');
+const Notification = require('./notification');
 
 // Associations
 User.belongsTo(Department, { foreignKey: 'department_id' });
@@ -22,4 +23,5 @@ module.exports = {
   ReportType,
   Report,
   ReviewHistory
+  ,Notification
 };
