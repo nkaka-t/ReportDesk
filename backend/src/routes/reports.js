@@ -31,6 +31,29 @@ router.post('/submit', authenticate, requireRole('employee','admin'), upload.sin
   }
 });
 
+// List reports (public for now)
+router.get('/', async (req, res) => {
+  try {
+    const list = await Report.findAll({ order: [['created_at','DESC']] });
+    res.json(list);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get single report
+router.get('/:id', async (req, res) => {
+  try {
+    const report = await Report.findByPk(req.params.id);
+    if (!report) return res.status(404).json({ error: 'Not found' });
+    res.json(report);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Reviewer action: review and forward
 router.post('/:id/review', authenticate, requireRole('reviewer','admin'), async (req, res) => {
   try {

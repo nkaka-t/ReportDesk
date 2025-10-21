@@ -11,6 +11,7 @@ const createNotification = async ({ user_id, type, payload, sendEmail = false })
         host: process.env.SMTP_HOST || 'localhost',
         port: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT,10) : 1025,
         secure: false,
+        auth: null, // MailHog doesn't require auth
       });
       await transporter.sendMail({
         from: process.env.SMTP_FROM || 'no-reply@reportdesk.local',

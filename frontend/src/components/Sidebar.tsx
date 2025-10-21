@@ -18,6 +18,10 @@ export default function Sidebar(){
           <ListItemIcon><DashboardIcon/></ListItemIcon>
           <ListItemText primary="Employee" />
         </ListItemButton>
+        <ListItemButton component={RouterLink} to="/reports">
+          <ListItemIcon><AssignmentIcon/></ListItemIcon>
+          <ListItemText primary="Reports" />
+        </ListItemButton>
         <ListItemButton component={RouterLink} to="/reviewer">
           <ListItemIcon><AssignmentIcon/></ListItemIcon>
           <ListItemText primary="Reviewer" />
@@ -26,9 +30,17 @@ export default function Sidebar(){
           <ListItemIcon><GavelIcon/></ListItemIcon>
           <ListItemText primary="Approver" />
         </ListItemButton>
+        <ListItemButton component={RouterLink} to="/notifications">
+          <ListItemIcon><AssignmentIcon/></ListItemIcon>
+          <ListItemText primary="Notifications" />
+        </ListItemButton>
         <ListItemButton component={RouterLink} to="/admin">
           <ListItemIcon><PeopleIcon/></ListItemIcon>
           <ListItemText primary="Admin" />
+        </ListItemButton>
+        <ListItemButton component={RouterLink} to="/admin/departments">
+          <ListItemIcon><PeopleIcon/></ListItemIcon>
+          <ListItemText primary="Departments" />
         </ListItemButton>
       </List>
     </Drawer>

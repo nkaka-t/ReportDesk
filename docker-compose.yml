@@ -12,3 +12,23 @@ services:
       - ./db/init:/docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reportdesk"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web UI
+    environment:
+      MH_STORAGE: maildir
+      MH_MAILDIR_PATH: /tmp/mailhog
+    volumes:
+      - ./mailhog-data:/tmp/mailhog
+
+volumes:
+  postgres_data:
+  mailhog_data:
