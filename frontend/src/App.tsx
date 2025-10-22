@@ -1,78 +1,48 @@
-import React, { useEffect, useState } from 'react';
-import { Routes, Route, Link, useNavigate } from 'react-router-dom';
-import Login from './pages/Login';
-import MenuIcon from '@mui/icons-material/Menu';
-import { IconButton, Menu, MenuItem } from '@mui/material';
-import Signup from './pages/Signup';
-import Dashboard from './pages/Dashboard';
-import EmployeeDashboard from './pages/EmployeeDashboard';
-import ReviewerDashboard from './pages/ReviewerDashboard';
-import ApproverDashboard from './pages/ApproverDashboard';
-import AdminDashboard from './pages/AdminDashboard';
-import AdminDepartments from './pages/AdminDepartments';
-import Notifications from './pages/Notifications';
-import Reports from './pages/Reports';
-import SubmitReport from './pages/SubmitReport';
-import ReportDetail from './pages/ReportDetail';
-import { Container, AppBar, Toolbar, Typography, Button } from '@mui/material';
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import DashboardLayout from "./components/DashboardLayout";
+import Dashboard from "./pages/Dashboard";
+import Departments from "./pages/Departments";
+import Reports from "./pages/Reports";
+import Review from "./pages/Review";
+import Approvals from "./pages/Approvals";
+import Notifications from "./pages/Notifications";
+import Search from "./pages/Search";
+import Settings from "./pages/Settings";
+import NotFound from "./pages/NotFound";
 
-export default function App(){
-  const [authed, setAuthed] = useState(!!localStorage.getItem('token'));
-  const navigate = useNavigate();
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+const queryClient = new QueryClient();
 
-  useEffect(()=>{
-    const onAuth = () => setAuthed(!!localStorage.getItem('token'));
-    window.addEventListener('authchange', onAuth);
-    return () => window.removeEventListener('authchange', onAuth);
-  },[]);
-
-  const logout = () => {
-    localStorage.removeItem('token');
-    window.dispatchEvent(new Event('authchange'));
-  };
-
-  return (
-      <>
-     <AppBar position="static">
-        <Toolbar>
-          <IconButton color="inherit" edge="start" sx={{mr:1}} onClick={(e)=>setAnchorEl(e.currentTarget)}>
-            <MenuIcon />
-          </IconButton>
-          <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={()=>setAnchorEl(null)}>
-            <MenuItem onClick={()=>{ setAnchorEl(null); navigate('/'); }}>Dashboard</MenuItem>
-            <MenuItem onClick={()=>{ setAnchorEl(null); navigate('/reports'); }}>Reports</MenuItem>
-            <MenuItem onClick={()=>{ setAnchorEl(null); navigate('/submit'); }}>Submit Report</MenuItem>
-            <MenuItem onClick={()=>{ setAnchorEl(null); navigate('/notifications'); }}>Notifications</MenuItem>
-            <MenuItem onClick={()=>{ setAnchorEl(null); navigate('/admin'); }}>Admin</MenuItem>
-            <MenuItem onClick={()=>{ setAnchorEl(null); navigate('/admin/departments'); }}>Departments</MenuItem>
-            {!authed && <MenuItem onClick={()=>{ setAnchorEl(null); navigate('/login'); }}>Login</MenuItem>}
-            {!authed && <MenuItem onClick={()=>{ setAnchorEl(null); navigate('/signup'); }}>Sign Up</MenuItem>}
-            {authed && <MenuItem onClick={()=>{ setAnchorEl(null); logout(); }}>Logout</MenuItem>}
-          </Menu>
-          <Typography variant="h6" sx={{flexGrow:1, ml:1}}>ReportDesk</Typography>
-          <Button color="inherit" component={Link} to="/">Dashboard</Button>
-          {!authed && <Button color="inherit" component={Link} to="/login">Login</Button>}
-          {!authed && <Button color="inherit" component={Link} to="/signup">Sign Up</Button>}
-          {authed && <Button color="inherit" onClick={logout}>Logout</Button>}
-        </Toolbar>
-        </AppBar>
-        <Container sx={{mt:4}}>
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Dashboard/>} />
-          <Route path="/login" element={<Login/>} />
-          <Route path="/signup" element={<Signup/>} />
-          <Route path="/reports" element={<Reports/>} />
-          <Route path="/submit" element={<SubmitReport/>} />
-          <Route path="/reports/:id" element={<ReportDetail/>} />
-          <Route path="/notifications" element={<Notifications/>} />
-          <Route path="/employee" element={<EmployeeDashboard/>} />
-          <Route path="/reviewer" element={<ReviewerDashboard/>} />
-          <Route path="/approver" element={<ApproverDashboard/>} />
-          <Route path="/admin" element={<AdminDashboard/>} />
-          <Route path="/admin/departments" element={<AdminDepartments/>} />
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route element={<DashboardLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/departments" element={<Departments />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/review" element={<Review />} />
+            <Route path="/approvals" element={<Approvals />} />
+            <Route path="/notifications" element={<Notifications />} />
+            <Route path="/search" element={<Search />} />
+            <Route path="/settings" element={<Settings />} />
+          </Route>
+          <Route path="*" element={<NotFound />} />
         </Routes>
-        </Container>
-      </>
-    );
-  }
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
+
+export default App;
