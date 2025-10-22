@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
 const app = express();
 const port = process.env.PORT || 4000;
 
@@ -21,6 +23,18 @@ app.use('/api/departments', deptRoutes);
 app.use('/api/report-types', rtRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/notifications', notificationsRoutes);
+
+// If a built frontend exists (frontend/dist), serve it as static files so
+// visiting the server root shows the new Vite frontend in production.
+const frontendDist = path.join(__dirname, '..', '..', 'frontend', 'dist');
+if (fs.existsSync(frontendDist)) {
+	app.use(express.static(frontendDist));
+	// Serve index.html for any non-API route
+	app.get('*', (req, res, next) => {
+		if (req.path.startsWith('/api')) return next();
+		res.sendFile(path.join(frontendDist, 'index.html'));
+	});
+}
 
 const { waitForDb } = require('./utils/dbWait');
 
