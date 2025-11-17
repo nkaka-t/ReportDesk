@@ -2,8 +2,10 @@ import { Bell, CheckCircle, AlertCircle, Clock, FileText } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useEffect, useState } from "react";
+import api from "@/lib/api";
 
-const notifications = [
+const notificationsMock = [
   {
     id: 1,
     type: "success",
@@ -73,6 +75,15 @@ const getGradient = (type: string) => {
 };
 
 export default function Notifications() {
+  const [notifications, setNotifications] = useState(notificationsMock);
+  useEffect(() => {
+    let mounted = true;
+    api.get('/notifications')
+      .then((res) => { if (mounted && Array.isArray(res.data)) setNotifications(res.data); })
+      .catch((err) => console.warn('Failed to load notifications:', err));
+    return () => { mounted = false };
+  }, []);
+
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
@@ -90,7 +101,13 @@ export default function Notifications() {
               {unreadCount} unread
             </Badge>
           )}
-          <Button variant="outline">Mark all as read</Button>
+          <Button variant="outline" onClick={() => {
+            api.post('/notifications/mark-read').then(() => {
+              setNotifications((n) => n.map((x) => ({ ...x, read: true })));
+            }).catch(() => {
+              setNotifications((n) => n.map((x) => ({ ...x, read: true })));
+            })
+          }}>Mark all as read</Button>
         </div>
       </div>
 

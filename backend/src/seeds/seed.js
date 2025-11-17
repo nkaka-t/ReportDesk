@@ -20,6 +20,7 @@ const run = async () => {
     // Create users: admin, reviewer, approver, employee
     const users = [
       { email: 'admin@example.com', password: 'AdminPass123!', full_name: 'Admin User', role: 'admin' },
+      { email: 'manager@example.com', password: 'ManagerPass123!', full_name: 'Global Manager', role: 'manager' },
       { email: 'reviewer@example.com', password: 'Reviewer123!', full_name: 'Dept Reviewer', role: 'reviewer', department_id: finance.id },
       { email: 'approver@example.com', password: 'Approver123!', full_name: 'COO Approver', role: 'approver' },
       { email: 'employee@example.com', password: 'Employee123!', full_name: 'Regular Employee', role: 'employee', department_id: finance.id }

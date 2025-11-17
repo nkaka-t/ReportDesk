@@ -6,8 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { useEffect, useState } from "react";
+import api from "@/lib/api";
+
+type Profile = { full_name?: string; email?: string; department_id?: number };
+
 
 export default function Settings() {
+  const [profile, setProfile] = useState<Profile>({});
+  useEffect(() => {
+    let mounted = true;
+    api.get('/auth/me').then((res) => { if (mounted) setProfile(res.data || {}); }).catch(() => {});
+    return () => { mounted = false };
+  }, []);
   const handleSave = () => {
     toast.success("Settings saved successfully!");
   };
@@ -34,20 +45,20 @@ export default function Settings() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">First Name</Label>
-                <Input id="firstName" defaultValue="John" />
+                <Input id="firstName" defaultValue={profile.full_name?.split(' ')[0] || ''} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="lastName">Last Name</Label>
-                <Input id="lastName" defaultValue="Doe" />
+                <Input id="lastName" defaultValue={profile.full_name?.split(' ').slice(1).join(' ') || ''} />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" defaultValue="john.doe@company.com" />
+              <Input id="email" type="email" defaultValue={profile.email || ''} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="department">Department</Label>
-              <Input id="department" defaultValue="Finance" disabled />
+              <Input id="department" defaultValue={String(profile.department_id || '')} disabled />
             </div>
             <Button onClick={handleSave} className="bg-gradient-primary">
               Save Changes

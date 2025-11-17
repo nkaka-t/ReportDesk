@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { Department } = require('../models');
+const { Department, User, Report, ReportType } = require('../models');
 const authenticate = require('../middleware/auth');
 const requireRole = require('../middleware/roles');
 
 // Create department (admin)
-router.post('/', authenticate, requireRole('admin'), async (req, res) => {
+router.post('/', authenticate, requireRole('admin','manager'), async (req, res) => {
   try {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Name required' });
@@ -19,11 +19,62 @@ router.post('/', authenticate, requireRole('admin'), async (req, res) => {
   }
 });
 
-// List departments
+// List departments (include counts: teams, members, active reports)
 router.get('/', async (req, res) => {
   try {
-    const list = await Department.findAll();
-    res.json(list);
+    const list = await Department.findAll({ order: [['name','ASC']] });
+    // enrich with counts
+    const enriched = await Promise.all(list.map(async (d) => {
+      const dept = d.toJSON();
+      // members count
+      const memberCount = await User.count({ where: { department_id: dept.id } });
+      // team count: distinct non-null team values
+      const teamCount = await User.count({ where: { department_id: dept.id, team: { [require('sequelize').Op.ne]: null } }, distinct: true, col: 'team' });
+      // active reports: reports linked to report types that belong to this department
+      const activeReports = await Report.count({
+        include: [{ model: ReportType, where: { department_id: dept.id } }]
+      });
+      return { ...dept, memberCount, teamCount, activeReports };
+    }));
+    res.json(enriched);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update department (admin)
+router.put('/:id', authenticate, requireRole('admin','manager'), async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { name, description } = req.body;
+    const d = await Department.findByPk(id);
+    if (!d) return res.status(404).json({ error: 'Not found' });
+
+    if (!name) return res.status(400).json({ error: 'Name required' });
+
+    // prevent duplicate names
+    const existing = await Department.findOne({ where: { name } });
+    if (existing && existing.id !== d.id) return res.status(400).json({ error: 'Department name already in use' });
+
+    d.name = name;
+    if (typeof description !== 'undefined') d.description = description;
+    await d.save();
+    res.json(d);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Delete department (admin)
+router.delete('/:id', authenticate, requireRole('admin','manager'), async (req, res) => {
+  try {
+    const id = req.params.id;
+    const d = await Department.findByPk(id);
+    if (!d) return res.status(404).json({ error: 'Not found' });
+    await d.destroy();
+    res.json({ ok: true });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });

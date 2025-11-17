@@ -1,0 +1,9 @@
+﻿{
+    "token":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTEsInJvbGUiOiJtYW5hZ2VyIiwiZW1haWwiOiJhdXRvLm1hbmFnZXIrdGVzdEBleGFtcGxlLmNvbSIsImlhdCI6MTc2MzM4MDc0MywiZXhwIjoxNzYzNDIzOTQzfQ.3W0l1PmWhHZL0MBYyltyVkl43T9JkeZ8gnlejtyKi78",
+    "user":  {
+                 "id":  11,
+                 "email":  "auto.manager+test@example.com",
+                 "full_name":  "Auto Manager",
+                 "role":  "manager"
+             }
+}

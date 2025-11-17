@@ -7,10 +7,12 @@ const authenticate = async (req, res, next) => {
   const token = auth.split(' ')[1];
   try {
     const payload = verify(token);
-    // attach user
+    // attach user (fresh from DB)
     const user = await User.findByPk(payload.id);
     if (!user) return res.status(401).json({ error: 'User not found' });
-    req.user = { id: user.id, role: user.role, email: user.email };
+    const rawRole = (user.role || '').toString();
+    const normRole = rawRole ? rawRole.trim().toLowerCase() : '';
+    req.user = { id: user.id, role: normRole, email: user.email, department_id: user.department_id, full_name: user.full_name };
     next();
   } catch (err) {
     console.error(err);

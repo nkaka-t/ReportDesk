@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
+const Report = require('./report');
 
 const ReportType = sequelize.define('ReportType', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -11,6 +12,12 @@ const ReportType = sequelize.define('ReportType', {
   timestamps: true,
   createdAt: 'created_at',
   updatedAt: false
+});
+
+// Add association with cascading delete
+ReportType.hasMany(Report, {
+  foreignKey: 'report_type_id',
+  onDelete: 'CASCADE',
 });
 
 module.exports = ReportType;

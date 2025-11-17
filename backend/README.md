@@ -36,3 +36,11 @@ npm run seed
 ```
 
 This will insert basic departments, a report type, and default users for testing.
+
+Manager role registration
+
+- Two ways to enable creating `manager` accounts during registration:
+	- Secure (recommended): set `MANAGER_REG_SECRET` to a strong secret and provide it in the signup form `manager_secret` field.
+	- Development (convenience): set `ALLOW_MANAGER_REG=true` to allow public manager creation without a secret. WARNING: this should only be used for local testing.
+
+- See project root `.env.example` for both variables.

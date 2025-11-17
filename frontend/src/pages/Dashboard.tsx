@@ -4,42 +4,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 
-const recentReports = [
-  {
-    id: 1,
-    title: "Q4 Financial Report",
-    department: "Finance",
-    dueDate: "2025-11-05",
-    status: "pending" as const,
-    submittedBy: "John Doe",
-  },
-  {
-    id: 2,
-    title: "HR Monthly Summary",
-    department: "Human Resources",
-    dueDate: "2025-10-28",
-    status: "reviewed" as const,
-    submittedBy: "Jane Smith",
-  },
-  {
-    id: 3,
-    title: "IT Infrastructure Report",
-    department: "IT",
-    dueDate: "2025-10-25",
-    status: "approved" as const,
-    submittedBy: "Mike Johnson",
-  },
-  {
-    id: 4,
-    title: "Marketing Campaign Analysis",
-    department: "Marketing",
-    dueDate: "2025-10-30",
-    status: "revision" as const,
-    submittedBy: "Sarah Williams",
-  },
-];
+import { useEffect, useState } from "react";
+import { useNavigate } from 'react-router-dom';
+import api from "@/lib/api";
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+  const [recentReports, setRecentReports] = useState<any[]>([]);
+  const [stats, setStats] = useState<any | null>(null);
+  useEffect(() => {
+    let mounted = true;
+    api.get('/reports')
+      .then((res) => { if (mounted) setRecentReports((res.data || []).slice(0,4)); })
+      .catch(() => {});
+    api.get('/stats').then((r) => { if (mounted) setStats(r.data); }).catch(() => {});
+    return () => { mounted = false };
+  }, []);
   return (
     <div className="space-y-6">
       <div>
@@ -52,30 +32,28 @@ export default function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Reports"
-          value="248"
+          value={stats ? stats.totalReports : '—'}
           icon={FileText}
           description="All time submissions"
-          trend={{ value: 12, isPositive: true }}
           gradient="primary"
         />
         <StatCard
           title="Pending Review"
-          value="18"
+          value={stats ? stats.pendingReview : '—'}
           icon={Clock}
           description="Awaiting action"
           gradient="warning"
         />
         <StatCard
           title="Approved This Month"
-          value="42"
+          value={stats ? stats.approvedThisMonth : '—'}
           icon={CheckCircle}
           description="Successfully completed"
-          trend={{ value: 8, isPositive: true }}
           gradient="success"
         />
         <StatCard
           title="Needs Attention"
-          value="5"
+          value={stats ? stats.needsAttention : '—'}
           icon={AlertCircle}
           description="Requires revision"
           gradient="danger"
@@ -107,7 +85,7 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
-            <Button variant="outline" className="w-full mt-4">
+            <Button variant="outline" className="w-full mt-4" onClick={() => navigate('/reports')}>
               View All Reports
             </Button>
           </CardContent>
@@ -120,13 +98,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {[
-                { name: "Finance", reports: 45, completion: 92 },
-                { name: "IT", reports: 38, completion: 87 },
-                { name: "HR", reports: 32, completion: 95 },
-                { name: "Marketing", reports: 28, completion: 82 },
-                { name: "Operations", reports: 25, completion: 88 },
-              ].map((dept) => (
+              {(stats && stats.departmentActivity ? stats.departmentActivity : []).map((dept: any) => (
                 <div key={dept.name} className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
@@ -158,7 +130,7 @@ export default function Dashboard() {
               Click here to submit your department's latest report
             </p>
           </div>
-          <Button size="lg" variant="secondary" className="bg-white text-primary hover:bg-white/90">
+          <Button size="lg" variant="secondary" className="bg-white text-primary hover:bg-white/90" onClick={() => navigate('/reports?openSubmit=1')}>
             Submit Report
           </Button>
         </CardContent>

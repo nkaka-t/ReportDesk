@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import api from "@/lib/api";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -23,13 +24,17 @@ export default function Signup() {
     confirmPassword: "",
     department: "",
     role: "",
+    managerSecret: "",
+    // manager-specific options
+    managerScope: "all", // 'all' or 'selected'
+    managedDepartments: [] as string[],
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validation
-    if (!formData.fullName || !formData.email || !formData.password || !formData.department || !formData.role) {
+    if (!formData.fullName || !formData.email || !formData.password || !formData.role) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -44,11 +49,49 @@ export default function Signup() {
       return;
     }
 
-    // Simulate successful signup
-    toast.success("Account created successfully!");
-    setTimeout(() => {
-      navigate("/dashboard");
-    }, 1000);
+    if (formData.role === 'manager') {
+      if (!formData.managerSecret) {
+        toast.error('Manager secret is required to register as manager');
+        return;
+      }
+      if (formData.managerScope === 'selected' && formData.managedDepartments.length === 0) {
+        toast.error('Please select at least one department for the manager or choose All Departments');
+        return;
+      }
+    } else {
+      // non-managers must pick a department
+      if (!formData.department) {
+        toast.error('Please select your department');
+        return;
+      }
+    }
+
+    // Call backend register
+    (async () => {
+      try {
+        const payload: any = {
+          full_name: formData.fullName,
+          email: formData.email,
+          password: formData.password,
+          role: formData.role,
+          manager_secret: formData.managerSecret || undefined,
+        };
+        if (formData.role === 'manager') {
+          // managers should not be attached to a single department
+          payload.department_id = null;
+          payload.manager_scope = formData.managerScope; // 'all' or 'selected'
+          payload.managed_departments = formData.managerScope === 'selected' ? formData.managedDepartments : [];
+        } else {
+          payload.department_id = formData.department;
+        }
+        await api.post('/auth/register', payload);
+  toast.success('Account created successfully!');
+  navigate('/login');
+      } catch (err) {
+        console.error(err);
+        toast.error('Signup failed');
+      }
+    })();
   };
 
   return (
@@ -91,6 +134,23 @@ export default function Signup() {
                 <FileText className="h-6 w-6 text-white" />
               </div>
             </div>
+
+              {formData.role === 'manager' && (
+                <div className="space-y-2">
+                  <Label htmlFor="managerSecret">Manager Secret</Label>
+                  <div className="relative">
+                    <Input
+                      id="managerSecret"
+                      type="password"
+                      placeholder="Enter manager registration secret"
+                      className="pl-2"
+                      value={formData.managerSecret}
+                      onChange={(e) => setFormData({ ...formData, managerSecret: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+              )}
             <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
             <CardDescription>
               Enter your details to create your ReportDesk account
@@ -131,26 +191,74 @@ export default function Signup() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground z-10" />
-                  <Select
-                    value={formData.department}
-                    onValueChange={(value) => setFormData({ ...formData, department: value })}
-                    required
-                  >
-                    <SelectTrigger id="department" className="pl-10">
-                      <SelectValue placeholder="Select your department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="finance">Finance</SelectItem>
-                      <SelectItem value="hr">Human Resources</SelectItem>
-                      <SelectItem value="it">Information Technology</SelectItem>
-                      <SelectItem value="marketing">Marketing</SelectItem>
-                      <SelectItem value="operations">Operations</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {formData.role !== 'manager' ? (
+                  <>
+                    <Label htmlFor="department">Department</Label>
+                    <div className="relative">
+                      <Building2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground z-10" />
+                      <Select
+                        value={formData.department}
+                        onValueChange={(value) => setFormData({ ...formData, department: value })}
+                        required
+                      >
+                        <SelectTrigger id="department" className="pl-10">
+                          <SelectValue placeholder="Select your department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="finance">Finance</SelectItem>
+                          <SelectItem value="hr">Human Resources</SelectItem>
+                          <SelectItem value="it">Information Technology</SelectItem>
+                          <SelectItem value="marketing">Marketing</SelectItem>
+                          <SelectItem value="operations">Operations</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Label>Manager Department Scope</Label>
+                    <div className="flex flex-col space-y-2">
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="managerScope"
+                          checked={formData.managerScope === 'all'}
+                          onChange={() => setFormData({ ...formData, managerScope: 'all', managedDepartments: [] })}
+                        />
+                        <span>All Departments</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="managerScope"
+                          checked={formData.managerScope === 'selected'}
+                          onChange={() => setFormData({ ...formData, managerScope: 'selected' })}
+                        />
+                        <span>Select specific departments</span>
+                      </label>
+
+                      {formData.managerScope === 'selected' && (
+                        <div className="grid grid-cols-2 gap-2">
+                          {['finance','hr','it','marketing','operations'].map((d) => (
+                            <label key={d} className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={formData.managedDepartments.includes(d)}
+                                onChange={(e) => {
+                                  const next = formData.managedDepartments.includes(d)
+                                    ? formData.managedDepartments.filter((x) => x !== d)
+                                    : [...formData.managedDepartments, d];
+                                  setFormData({ ...formData, managedDepartments: next });
+                                }}
+                              />
+                              <span className="capitalize">{d}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -167,6 +275,7 @@ export default function Signup() {
                     <SelectItem value="employee">Employee</SelectItem>
                     <SelectItem value="reviewer">Department Reviewer</SelectItem>
                     <SelectItem value="approver">Approver (COO)</SelectItem>
+                    <SelectItem value="manager">Manager (Full control)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

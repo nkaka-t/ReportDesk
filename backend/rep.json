@@ -1,0 +1,13 @@
+﻿{
+    "version":  1,
+    "id":  8,
+    "user_id":  11,
+    "report_type_id":  2,
+    "file_path":  null,
+    "status":  "Pending",
+    "submitted_at":  "2025-11-17T11:59:03.078Z",
+    "title":  "Report created by manager",
+    "description":  "testing create type/department",
+    "updated_at":  "2025-11-17T11:59:03.079Z",
+    "created_at":  "2025-11-17T11:59:03.079Z"
+}

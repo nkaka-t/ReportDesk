@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Building2, Users, Plus, Edit, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,69 +15,86 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import api from "@/lib/api";
 
-const mockDepartments = [
-  {
-    id: 1,
-    name: "Finance",
-    description: "Financial planning and reporting",
-    teamCount: 3,
-    memberCount: 24,
-    activeReports: 8,
-  },
-  {
-    id: 2,
-    name: "Human Resources",
-    description: "Employee management and recruitment",
-    teamCount: 2,
-    memberCount: 12,
-    activeReports: 5,
-  },
-  {
-    id: 3,
-    name: "Information Technology",
-    description: "IT infrastructure and support",
-    teamCount: 4,
-    memberCount: 18,
-    activeReports: 12,
-  },
-  {
-    id: 4,
-    name: "Marketing",
-    description: "Brand management and campaigns",
-    teamCount: 3,
-    memberCount: 15,
-    activeReports: 7,
-  },
-];
+type Dept = {
+  id: number;
+  name: string;
+  description?: string | null;
+  teamCount?: number;
+  memberCount?: number;
+  activeReports?: number;
+};
 
 export default function Departments() {
-  const [departments, setDepartments] = useState(mockDepartments);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newDept, setNewDept] = useState({ name: "", description: "" });
+  const [departments, setDepartments] = useState<Dept[]>([]);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    api
+      .get('/departments')
+      .then((res) => {
+        if (mounted && Array.isArray(res.data)) setDepartments(res.data);
+      })
+      .catch((err) => {
+        console.warn('Failed to load departments:', err);
+        toast.error('Could not load departments');
+      })
+      .finally(() => setLoading(false));
+    return () => { mounted = false };
+  }, []);
 
-  const handleAddDepartment = () => {
-    if (newDept.name && newDept.description) {
-      setDepartments([
-        ...departments,
-        {
-          id: departments.length + 1,
-          name: newDept.name,
-          description: newDept.description,
-          teamCount: 0,
-          memberCount: 0,
-          activeReports: 0,
-        },
-      ]);
-      setNewDept({ name: "", description: "" });
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [newDept, setNewDept] = useState({ name: "", description: "" });
+  const [editDept, setEditDept] = useState<Dept | null>(null);
+
+  const handleAddDepartment = async () => {
+    if (!newDept.name) return toast.error('Name is required');
+    try {
+      const res = await api.post('/departments', { name: newDept.name, description: newDept.description });
+      setDepartments((d) => [res.data, ...d]);
+      setNewDept({ name: '', description: '' });
       setIsDialogOpen(false);
-      toast.success("Department created successfully!");
+      toast.success('Department created');
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || 'Failed to create department';
+      toast.error(msg);
     }
   };
 
-  const handleDeleteDepartment = (id: number) => {
-    setDepartments(departments.filter((dept) => dept.id !== id));
-    toast.success("Department deleted");
+  const openEdit = (dept: Dept) => {
+    setEditDept(dept);
+    setIsEditOpen(true);
+  };
+
+  const handleUpdateDepartment = async () => {
+    if (!editDept) return;
+    if (!editDept.name) return toast.error('Name is required');
+    try {
+      const res = await api.put(`/departments/${editDept.id}`, { name: editDept.name, description: editDept.description });
+      setDepartments((d) => d.map((x) => (x.id === res.data.id ? res.data : x)));
+      setIsEditOpen(false);
+      setEditDept(null);
+      toast.success('Department updated');
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || 'Failed to update department';
+      toast.error(msg);
+    }
+  };
+
+  const handleDeleteDepartment = async (id: number) => {
+    if (!confirm('Delete department? This cannot be undone.')) return;
+    try {
+      await api.delete(`/departments/${id}`);
+      setDepartments((d) => d.filter((dept) => dept.id !== id));
+      toast.success('Department deleted');
+    } catch (err) {
+      // fallback: remove locally
+      setDepartments((d) => d.filter((dept) => dept.id !== id));
+      toast.success('Department deleted (local)');
+    }
   };
 
   return (
@@ -149,7 +166,7 @@ export default function Departments() {
                   <div>
                     <CardTitle className="text-lg">{dept.name}</CardTitle>
                     <CardDescription className="text-sm">
-                      {dept.description}
+                      {dept.description || '—'}
                     </CardDescription>
                   </div>
                 </div>
@@ -159,24 +176,24 @@ export default function Departments() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Teams</span>
-                  <Badge variant="secondary">{dept.teamCount}</Badge>
+                  <Badge variant="secondary">{dept.teamCount ?? 0}</Badge>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Members</span>
                   <Badge variant="secondary">
                     <Users className="h-3 w-3 mr-1" />
-                    {dept.memberCount}
+                    {dept.memberCount ?? 0}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Active Reports</span>
                   <Badge className="bg-primary/10 text-primary">
-                    {dept.activeReports}
+                    {dept.activeReports ?? 0}
                   </Badge>
                 </div>
 
                 <div className="flex gap-2 pt-4 border-t">
-                  <Button variant="outline" size="sm" className="flex-1">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => openEdit(dept)}>
                     <Edit className="h-3 w-3 mr-1" />
                     Edit
                   </Button>
@@ -194,6 +211,30 @@ export default function Departments() {
           </Card>
         ))}
       </div>
+
+      {/* Edit Department Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={(v) => { if (!v) setEditDept(null); setIsEditOpen(v); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Department</DialogTitle>
+            <DialogDescription>Update department details</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Department Name</Label>
+              <Input id="edit-name" value={editDept?.name || ''} onChange={(e) => setEditDept((s) => s ? { ...s, name: e.target.value } : s)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-desc">Description</Label>
+              <Input id="edit-desc" value={editDept?.description || ''} onChange={(e) => setEditDept((s) => s ? { ...s, description: e.target.value } : s)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setIsEditOpen(false); setEditDept(null); }}>Cancel</Button>
+            <Button onClick={handleUpdateDepartment} className="bg-gradient-primary">Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

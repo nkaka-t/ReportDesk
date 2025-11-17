@@ -1,0 +1,9 @@
+﻿{
+    "token":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTIsInJvbGUiOiJtYW5hZ2VyIiwiZW1haWwiOiJhdXRvLm1hbmFnZXIuc3RlcEBleGFtcGxlLmNvbSIsImlhdCI6MTc2MzM4MTM3MSwiZXhwIjoxNzYzNDI0NTcxfQ.JsZQmUrRFbJhWRPSe8abJ3MZeFNOOZCLsXhue6WY-rs",
+    "user":  {
+                 "id":  12,
+                 "email":  "auto.manager.step@example.com",
+                 "full_name":  "Auto Manager Step",
+                 "role":  "manager"
+             }
+}

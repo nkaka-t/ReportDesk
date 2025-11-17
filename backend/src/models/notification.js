@@ -5,7 +5,7 @@ const Notification = sequelize.define('Notification', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   user_id: { type: DataTypes.INTEGER },
   type: { type: DataTypes.STRING },
-  payload: { type: DataTypes.JSONB },
+  payload: { type: DataTypes.JSON },
   read: { type: DataTypes.BOOLEAN, defaultValue: false }
 }, {
   tableName: 'notifications',

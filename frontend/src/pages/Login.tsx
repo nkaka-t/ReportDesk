@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Lock, Mail } from "lucide-react";
 import { toast } from "sonner";
+import api from "@/lib/api";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -16,13 +17,18 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
-    // Simulate login
-    setTimeout(() => {
+    try {
+      const res = await api.post('/auth/login', { email, password });
+      const { token } = res.data;
+      localStorage.setItem('token', token);
+      toast.success('Login successful!');
+      navigate('/dashboard');
+    } catch (err) {
+      console.error(err);
+      toast.error('Login failed');
+    } finally {
       setIsLoading(false);
-      toast.success("Login successful!");
-      navigate("/dashboard");
-    }, 1000);
+    }
   };
 
   return (

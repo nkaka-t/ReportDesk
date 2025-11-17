@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import DashboardLayout from "./components/DashboardLayout";
@@ -23,24 +23,31 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route element={<DashboardLayout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/departments" element={<Departments />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/review" element={<Review />} />
-            <Route path="/approvals" element={<Approvals />} />
-            <Route path="/notifications" element={<Notifications />} />
-            <Route path="/search" element={<Search />} />
-            <Route path="/settings" element={<Settings />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      {
+        /* create router and pass future flags to RouterProvider so runtime picks them up */
+      }
+      {(() => {
+        const router = createBrowserRouter([
+          { path: "/", element: <Navigate to="/login" replace /> },
+          { path: "/login", element: <Login /> },
+          { path: "/signup", element: <Signup /> },
+          {
+            element: <DashboardLayout />,
+            children: [
+              { path: "/dashboard", element: <Dashboard /> },
+              { path: "/departments", element: <Departments /> },
+              { path: "/reports", element: <Reports /> },
+              { path: "/review", element: <Review /> },
+              { path: "/approvals", element: <Approvals /> },
+              { path: "/notifications", element: <Notifications /> },
+              { path: "/search", element: <Search /> },
+              { path: "/settings", element: <Settings /> }
+            ]
+          },
+          { path: "*", element: <NotFound /> }
+        ]);
+        return <RouterProvider router={router} future={( { v7_startTransition: true, v7_relativeSplatPath: true } as any )} />;
+      })()}
     </TooltipProvider>
   </QueryClientProvider>
 );

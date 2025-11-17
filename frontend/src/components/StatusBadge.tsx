@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-type Status = "pending" | "reviewed" | "approved" | "rejected" | "revision";
+export type Status = "pending" | "reviewed" | "approved" | "rejected" | "revision";
 
 interface StatusBadgeProps {
   status: Status;

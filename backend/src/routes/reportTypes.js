@@ -5,7 +5,7 @@ const authenticate = require('../middleware/auth');
 const requireRole = require('../middleware/roles');
 
 // Create report type
-router.post('/', authenticate, requireRole('admin'), async (req, res) => {
+router.post('/', authenticate, requireRole('admin','manager'), async (req, res) => {
   try {
     const { name, department_id, frequency } = req.body;
     if (!name) return res.status(400).json({ error: 'Name required' });

@@ -3,6 +3,8 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Bell, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useEffect, useState } from 'react';
+import api from '@/lib/api';
 import { Outlet, useNavigate } from "react-router-dom";
 import {
   Tooltip,
@@ -12,6 +14,23 @@ import {
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
+  const [unread, setUnread] = useState<number>(0);
+
+  useEffect(() => {
+    let mounted = true;
+    api.get('/notifications')
+      .then((res) => {
+        if (!mounted) return;
+        if (Array.isArray(res.data)) {
+          const count = res.data.filter((n: any) => !n.read).length;
+          setUnread(count);
+        }
+      })
+      .catch((err) => {
+        console.warn('Failed to load notifications for header badge', err);
+      });
+    return () => { mounted = false };
+  }, []);
 
   return (
     <SidebarProvider>
@@ -27,13 +46,21 @@ export default function DashboardLayout() {
                     variant="ghost" 
                     size="icon" 
                     className="relative"
-                    onClick={() => navigate("/notifications")}
+                    onClick={async () => {
+                      try {
+                        const res = await api.get('/notifications');
+                        if (Array.isArray(res.data)) setUnread(res.data.filter((n: any) => !n.read).length);
+                      } catch (err) { /* ignore */ }
+                      navigate("/notifications");
+                    }}
                     aria-label="Notifications"
                   >
                     <Bell className="h-5 w-5" />
-                    <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center bg-destructive text-[10px]">
-                      3
-                    </Badge>
+                    {unread > 0 && (
+                      <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center bg-destructive text-[10px]">
+                        {unread}
+                      </Badge>
+                    )}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>

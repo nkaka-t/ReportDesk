@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search as SearchIcon, Filter, Calendar, FileText, Download } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,65 +12,35 @@ import {
 } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
 
-const allReports = [
-  {
-    id: 1,
-    title: "Q4 Financial Report",
-    department: "Finance",
-    type: "Quarterly",
-    status: "pending" as const,
-    submittedDate: "2025-10-22",
-    submittedBy: "John Doe",
-  },
-  {
-    id: 2,
-    title: "HR Monthly Summary - October",
-    department: "Human Resources",
-    type: "Monthly",
-    status: "reviewed" as const,
-    submittedDate: "2025-10-20",
-    submittedBy: "Jane Smith",
-  },
-  {
-    id: 3,
-    title: "IT Infrastructure Report",
-    department: "IT",
-    type: "Annual",
-    status: "approved" as const,
-    submittedDate: "2025-10-18",
-    submittedBy: "Mike Johnson",
-  },
-  {
-    id: 4,
-    title: "Marketing Campaign Analysis",
-    department: "Marketing",
-    type: "Monthly",
-    status: "revision" as const,
-    submittedDate: "2025-10-21",
-    submittedBy: "Sarah Williams",
-  },
-  {
-    id: 5,
-    title: "Operations Efficiency Report",
-    department: "Operations",
-    type: "Quarterly",
-    status: "approved" as const,
-    submittedDate: "2025-10-15",
-    submittedBy: "Tom Anderson",
-  },
-];
+import api from '@/lib/api';
+import { toast } from 'sonner';
+
+// Start with an empty array; we'll load reports from the backend
+const initialReports: Array<any> = [];
 
 export default function Search() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDept, setFilterDept] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
+  const [reports, setReports] = useState<Array<any>>(initialReports);
+  const [allLoaded, setAllLoaded] = useState<boolean>(false);
 
-  const filteredReports = allReports.filter((report) => {
-    const matchesSearch =
-      report.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.submittedBy.toLowerCase().includes(searchQuery.toLowerCase());
+  useEffect(() => {
+    let mounted = true;
+    api.get('/reports')
+      .then((res) => { if (mounted && Array.isArray(res.data)) { setReports(res.data); setAllLoaded(true); } })
+      .catch((err) => console.warn('Failed to load reports for search page', err));
+    return () => { mounted = false };
+  }, []);
+
+  const filteredReports = reports.filter((report) => {
+    const q = String(searchQuery || '').toLowerCase();
+    const matchesSearch = q === '' || (
+      ((report.title || '') + ' ' + (report.description || '')).toLowerCase().includes(q) ||
+      (String(report.department || '')).toLowerCase().includes(q) ||
+      (String(report.submittedBy || '')).toLowerCase().includes(q)
+    );
 
     const matchesDept = filterDept === "all" || report.department === filterDept;
     const matchesStatus = filterStatus === "all" || report.status === filterStatus;
@@ -78,6 +48,34 @@ export default function Search() {
 
     return matchesSearch && matchesDept && matchesStatus && matchesType;
   });
+
+  const performSearch = async () => {
+    try {
+      if (!searchQuery || String(searchQuery).trim() === '') {
+        // reload all
+        const res = await api.get('/reports');
+        if (Array.isArray(res.data)) setReports(res.data);
+        return;
+      }
+      const res = await api.get('/reports', { params: { q: searchQuery } });
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        setReports(res.data);
+        return;
+      }
+      // fallback to client-side filter if server returned none
+      const q = String(searchQuery || '').toLowerCase();
+      const fallback = reports.filter((r) => {
+        const title = (r.title || '').toString().toLowerCase();
+        const desc = (r.description || '').toString().toLowerCase();
+        const submitter = (r.submittedBy || '').toString().toLowerCase();
+        return title.includes(q) || desc.includes(q) || submitter.includes(q) || String(r.department || '').toLowerCase().includes(q);
+      });
+      setReports(fallback);
+    } catch (err) {
+      console.error('Search failed', err);
+      toast.error('Search failed');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -100,6 +98,7 @@ export default function Search() {
               placeholder="Search by title, department, or submitter..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); performSearch(); } }}
               className="pl-10"
             />
           </div>
@@ -149,14 +148,16 @@ export default function Search() {
             </Select>
           </div>
         </CardContent>
+        <div className="flex gap-2 p-4">
+          <Button onClick={() => performSearch()}>Search</Button>
+          <Button variant="outline" onClick={async () => { setSearchQuery(''); const res = await api.get('/reports'); if (Array.isArray(res.data)) setReports(res.data); }}>Clear</Button>
+        </div>
       </Card>
 
       <Card>
         <CardHeader>
           <CardTitle>Search Results</CardTitle>
-          <CardDescription>
-            {filteredReports.length} report{filteredReports.length !== 1 ? "s" : ""} found
-          </CardDescription>
+          <CardDescription>Results matching your criteria</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
