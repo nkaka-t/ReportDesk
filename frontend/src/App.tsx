@@ -14,6 +14,7 @@ import Approvals from "./pages/Approvals";
 import Notifications from "./pages/Notifications";
 import Search from "./pages/Search";
 import Settings from "./pages/Settings";
+import Schedules from "./pages/Schedules";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
               { path: "/reports", element: <Reports /> },
               { path: "/review", element: <Review /> },
               { path: "/approvals", element: <Approvals /> },
+              { path: "/schedules", element: <Schedules /> },
               { path: "/notifications", element: <Notifications /> },
               { path: "/search", element: <Search /> },
               { path: "/settings", element: <Settings /> }

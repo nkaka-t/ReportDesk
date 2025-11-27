@@ -28,6 +28,7 @@ import { toast } from "sonner";
 
 export default function Reports() {
   const [reports, setReports] = useState<any[]>([]);
+  const [deliverables, setDeliverables] = useState<any[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all");
   const [selectedReport, setSelectedReport] = useState<any | null>(null);
@@ -39,12 +40,21 @@ export default function Reports() {
     try { return new Date(d).toLocaleDateString(); } catch { return d; }
   }
 
-  useEffect(() => {
-    let mounted = true;
+  const loadReports = () => {
     api.get('/reports')
-      .then((res) => { if (mounted && Array.isArray(res.data)) setReports(res.data); })
+      .then((res) => { if (Array.isArray(res.data)) setReports(res.data); })
       .catch((err) => console.warn('Failed to load reports:', err));
-    return () => { mounted = false };
+  };
+
+  const loadDeliverables = () => {
+    api.get('/deliverables', { params: { status: 'Pending' } })
+      .then((res) => setDeliverables(res.data || []))
+      .catch((err) => console.warn('Failed to load deliverables', err));
+  };
+
+  useEffect(() => {
+    loadReports();
+    loadDeliverables();
   }, []);
 
   // auto-open submit dialog if ?openSubmit=1 is present
@@ -62,10 +72,21 @@ export default function Reports() {
   const [reportType, setReportType] = useState('');
   const [department, setDepartment] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [selectedDeliverable, setSelectedDeliverable] = useState('');
   const [description, setDescription] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [reportTypes, setReportTypes] = useState<Array<{id:number,name:string,department_id?:number}>>([]);
+
+  useEffect(() => {
+    if (!selectedDeliverable) return;
+    const found = deliverables.find((d) => String(d.id) === selectedDeliverable);
+    if (found) {
+      if (found.report_type_id) setReportType(String(found.report_type_id));
+      if (found.due_date) setDueDate(found.due_date);
+      if (found.department_id) setDepartment(String(found.department_id));
+    }
+  }, [selectedDeliverable, deliverables]);
 
   const handleSubmitReport = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,14 +98,16 @@ export default function Reports() {
       fd.append('title', title);
       fd.append('report_type_id', reportType);
       if (dueDate) fd.append('due_date', dueDate);
+      if (selectedDeliverable) fd.append('deliverable_id', selectedDeliverable);
       fd.append('department', department);
       fd.append('description', description);
       if (file) fd.append('file', file);
       await api.post('/reports/submit', fd);
       toast.success('Report submitted successfully!');
       setIsDialogOpen(false);
-      const res = await api.get('/reports');
-      if (Array.isArray(res.data)) setReports(res.data);
+      setSelectedDeliverable('');
+      loadReports();
+      loadDeliverables();
     } catch (err) {
       console.error('Submit failed', err);
       // @ts-ignore
@@ -237,6 +260,32 @@ export default function Reports() {
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="deliverable">Deliverable</Label>
+                  <Select value={selectedDeliverable} onValueChange={(value) => setSelectedDeliverable(value)}>
+                    <SelectTrigger id="deliverable">
+                      <SelectValue placeholder="Link to scheduled deliverable (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(deliverables || []).map((d) => (
+                        <SelectItem key={d.id} value={String(d.id)}>
+                          {d.report_type || d.schedule?.name || `Deliverable #${d.id}`} — Due {d.due_date ? new Date(d.due_date).toLocaleDateString() : 'n/a'}
+                        </SelectItem>
+                      ))}
+                      {deliverables.length === 0 && (
+                        <SelectItem value="__none" disabled className="text-muted-foreground">
+                          No pending deliverables
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {selectedDeliverable && (
+                    <p className="text-xs text-muted-foreground">
+                      Due date and report type auto-filled from deliverable.
+                    </p>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="due-date">Due Date</Label>
@@ -329,6 +378,11 @@ export default function Reports() {
                         <span>Due: {report.dueDate ? formatDate(report.dueDate) : '—'}</span>
                       </div>
                     </div>
+                    {report.deliverableId && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Deliverable #{report.deliverableId} • {report.deliverableStatus || 'Pending'}
+                      </p>
+                    )}
                   </div>
                 </div>
 

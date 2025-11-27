@@ -12,7 +12,7 @@ const authenticate = async (req, res, next) => {
     if (!user) return res.status(401).json({ error: 'User not found' });
     const rawRole = (user.role || '').toString();
     const normRole = rawRole ? rawRole.trim().toLowerCase() : '';
-    req.user = { id: user.id, role: normRole, email: user.email, department_id: user.department_id, full_name: user.full_name };
+    req.user = { id: user.id, role: normRole, email: user.email, department_id: user.department_id, team_id: user.team_id, full_name: user.full_name };
     next();
   } catch (err) {
     console.error(err);

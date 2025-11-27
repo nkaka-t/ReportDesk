@@ -16,6 +16,11 @@ const rtRoutes = require('./routes/reportTypes');
 const reportsRoutes = require('./routes/reports');
 const notificationsRoutes = require('./routes/notifications');
 const statsRoutes = require('./routes/stats');
+const teamRoutes = require('./routes/teams');
+const schedulesRoutes = require('./routes/schedules');
+const deliverablesRoutes = require('./routes/deliverables');
+const adminUsersRoutes = require('./routes/adminUsers');
+const { startScheduler } = require('./utils/scheduler');
 
 app.get('/', (req, res) => res.json({status: 'ok', name: 'ReportDesk API'}));
 
@@ -25,6 +30,10 @@ app.use('/api/report-types', rtRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/teams', teamRoutes);
+app.use('/api/schedules', schedulesRoutes);
+app.use('/api/deliverables', deliverablesRoutes);
+app.use('/api/admin/users', adminUsersRoutes);
 
 // If a built frontend exists (frontend/dist), serve it as static files so
 // visiting the server root shows the new Vite frontend in production.
@@ -85,6 +94,7 @@ const start = async () => {
 				}
 				await sequelize.sync();
 				console.log('DB synchronized');
+        startScheduler();
 		app.listen(port, () => console.log(`Server listening on port ${port}`));
 	} catch (err) {
 		console.error('Failed to start server', err);

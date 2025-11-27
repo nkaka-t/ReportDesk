@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, Users, Plus, Edit, Trash2 } from "lucide-react";
+import { Building2, Users, Plus, Edit, Trash2, Layers } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,29 +26,57 @@ type Dept = {
   activeReports?: number;
 };
 
+type Team = {
+  id: number;
+  name: string;
+  description?: string | null;
+  department_id: number;
+};
+
 export default function Departments() {
   const [departments, setDepartments] = useState<Dept[]>([]);
   const [loading, setLoading] = useState(false);
-  useEffect(() => {
-    let mounted = true;
+  const loadDepartments = () => {
     setLoading(true);
     api
       .get('/departments')
       .then((res) => {
-        if (mounted && Array.isArray(res.data)) setDepartments(res.data);
+        if (Array.isArray(res.data)) setDepartments(res.data);
       })
       .catch((err) => {
         console.warn('Failed to load departments:', err);
         toast.error('Could not load departments');
       })
       .finally(() => setLoading(false));
-    return () => { mounted = false };
+  };
+
+  const loadTeams = () => {
+    api
+      .get('/teams')
+      .then((res) => {
+        const grouped: Record<number, Team[]> = {};
+        (res.data || []).forEach((team: Team) => {
+          if (!grouped[team.department_id]) grouped[team.department_id] = [];
+          grouped[team.department_id].push(team);
+        });
+        setTeamsByDept(grouped);
+      })
+      .catch((err) => console.warn('Failed to load teams:', err));
+  };
+
+  useEffect(() => {
+    loadDepartments();
+    loadTeams();
   }, []);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isTeamDialogOpen, setIsTeamDialogOpen] = useState(false);
   const [newDept, setNewDept] = useState({ name: "", description: "" });
   const [editDept, setEditDept] = useState<Dept | null>(null);
+  const [teamDept, setTeamDept] = useState<Dept | null>(null);
+  const [teamsByDept, setTeamsByDept] = useState<Record<number, Team[]>>({});
+  const [newTeam, setNewTeam] = useState({ name: "", description: "" });
 
   const handleAddDepartment = async () => {
     if (!newDept.name) return toast.error('Name is required');
@@ -94,6 +122,28 @@ export default function Departments() {
       // fallback: remove locally
       setDepartments((d) => d.filter((dept) => dept.id !== id));
       toast.success('Department deleted (local)');
+    }
+  };
+
+  const handleAddTeam = async () => {
+    if (!teamDept) return;
+    if (!newTeam.name) return toast.error('Team name is required');
+    try {
+      const res = await api.post('/teams', {
+        name: newTeam.name,
+        description: newTeam.description,
+        department_id: teamDept.id,
+      });
+      setTeamsByDept((prev) => ({
+        ...prev,
+        [teamDept.id]: prev[teamDept.id] ? [res.data, ...prev[teamDept.id]] : [res.data],
+      }));
+      toast.success('Team created');
+      setIsTeamDialogOpen(false);
+      setNewTeam({ name: "", description: "" });
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || 'Failed to create team';
+      toast.error(msg);
     }
   };
 
@@ -192,6 +242,33 @@ export default function Departments() {
                   </Badge>
                 </div>
 
+                <div className="border-t pt-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium flex items-center gap-2">
+                      <Layers className="h-4 w-4 text-muted-foreground" />
+                      Teams
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { setTeamDept(dept); setIsTeamDialogOpen(true); }}
+                    >
+                      Add Team
+                    </Button>
+                  </div>
+                  <div className="space-y-2 max-h-32 overflow-auto pr-1">
+                    {(teamsByDept[dept.id] || []).map((team) => (
+                      <div key={team.id} className="text-sm text-muted-foreground">
+                        {team.name}
+                        {team.description ? ` • ${team.description}` : ''}
+                      </div>
+                    ))}
+                    {(teamsByDept[dept.id] || []).length === 0 && (
+                      <p className="text-xs text-muted-foreground">No teams yet</p>
+                    )}
+                  </div>
+                </div>
+
                 <div className="flex gap-2 pt-4 border-t">
                   <Button variant="outline" size="sm" className="flex-1" onClick={() => openEdit(dept)}>
                     <Edit className="h-3 w-3 mr-1" />
@@ -232,6 +309,39 @@ export default function Departments() {
           <DialogFooter>
             <Button variant="outline" onClick={() => { setIsEditOpen(false); setEditDept(null); }}>Cancel</Button>
             <Button onClick={handleUpdateDepartment} className="bg-gradient-primary">Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isTeamDialogOpen} onOpenChange={(v) => { if (!v) setTeamDept(null); setIsTeamDialogOpen(v); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Team {teamDept ? `for ${teamDept.name}` : ''}</DialogTitle>
+            <DialogDescription>Organize departments into teams</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="team-name">Team Name</Label>
+              <Input
+                id="team-name"
+                value={newTeam.name}
+                onChange={(e) => setNewTeam({ ...newTeam, name: e.target.value })}
+                placeholder="e.g., Payroll"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="team-desc">Description</Label>
+              <Input
+                id="team-desc"
+                value={newTeam.description}
+                onChange={(e) => setNewTeam({ ...newTeam, description: e.target.value })}
+                placeholder="Optional"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsTeamDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleAddTeam}>Save Team</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

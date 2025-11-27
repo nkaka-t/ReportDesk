@@ -4,7 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const models = require('../models');
-const { Report, ReportType, ReviewHistory, User, Notification, Department } = models;
+const { Report, ReportType, ReviewHistory, User, Notification, Department, Deliverable, Team } = models;
 const sequelize = models.sequelize;
 const { Op } = require('sequelize');
 const authenticate = require('../middleware/auth');
@@ -34,7 +34,7 @@ router.post('/submit', authenticate, requireRole('employee','manager','admin'), 
     console.log('[reports] body=', req.body);
     console.log('[reports] file=', req.file && { originalname: req.file.originalname, path: req.file.path, size: req.file.size });
 
-  let { report_type_id, due_date, title, description, department_id, department_name } = req.body;
+  let { report_type_id, due_date, title, description, department_id, department_name, team_id, team_name, deliverable_id } = req.body;
     const file_path = req.file ? req.file.path : null;
 
     // normalize/resolve department if provided (allows manager to create new department by name)
@@ -59,6 +59,26 @@ router.post('/submit', authenticate, requireRole('employee','manager','admin'), 
         d = await Department.create({ name: String(department_name).trim(), description: null });
       }
       if (d) resolvedDepartmentId = d.id;
+    }
+
+    // resolve team
+    let resolvedTeamId = req.user && req.user.team_id ? req.user.team_id : null;
+    if (team_id) {
+      const t = await Team.findByPk(team_id);
+      if (t) {
+        resolvedTeamId = t.id;
+        if (!resolvedDepartmentId) resolvedDepartmentId = t.department_id;
+      }
+    } else if (team_name) {
+      const where = resolvedDepartmentId ? { name: team_name, department_id: resolvedDepartmentId } : { name: team_name };
+      let t = await Team.findOne({ where });
+      if (!t && req.user && String(req.user.role).toLowerCase() === 'manager') {
+        t = await Team.create({ name: team_name, department_id: resolvedDepartmentId || null });
+      }
+      if (t) {
+        resolvedTeamId = t.id;
+        if (!resolvedDepartmentId) resolvedDepartmentId = t.department_id;
+      }
     }
 
     // normalize report_type_id: allow numeric id or name; if not found and submitter is manager, create it
@@ -89,6 +109,27 @@ router.post('/submit', authenticate, requireRole('employee','manager','admin'), 
       return res.status(400).json({ error: 'Invalid report type' });
     }
 
+    // If a deliverable is provided ensure it matches
+    let deliverable = null;
+    if (deliverable_id) {
+      deliverable = await Deliverable.findByPk(deliverable_id);
+      if (!deliverable) return res.status(400).json({ error: 'Invalid deliverable' });
+      if (deliverable.status !== 'Pending') return res.status(400).json({ error: 'Deliverable already fulfilled' });
+      if (resolvedDepartmentId && deliverable.department_id && deliverable.department_id !== resolvedDepartmentId) {
+        return res.status(400).json({ error: 'Deliverable department mismatch' });
+      }
+      if (resolvedTeamId && deliverable.team_id && deliverable.team_id !== resolvedTeamId) {
+        return res.status(400).json({ error: 'Deliverable team mismatch' });
+      }
+      if (report_type_id && deliverable.report_type_id !== report_type_id) {
+        return res.status(400).json({ error: 'Deliverable report type mismatch' });
+      }
+      report_type_id = deliverable.report_type_id;
+      resolvedDepartmentId = deliverable.department_id || resolvedDepartmentId;
+      resolvedTeamId = deliverable.team_id || resolvedTeamId;
+      due_date = deliverable.due_date;
+    }
+
     // coerce due_date if provided
     if (due_date) {
       const d = new Date(due_date);
@@ -96,13 +137,18 @@ router.post('/submit', authenticate, requireRole('employee','manager','admin'), 
       else due_date = null;
     }
 
-  const report = await Report.create({ user_id: req.user.id, report_type_id, file_path, due_date, status: 'Pending', submitted_at: new Date(), title, description });
+  const report = await Report.create({ user_id: req.user.id, report_type_id, file_path, due_date, status: 'Pending', submitted_at: new Date(), title, description, team_id: resolvedTeamId, deliverable_id: deliverable ? deliverable.id : null });
     // notify department reviewer(s) - simplistic: notify first reviewer in same department
     const rt = resolvedReportType || (report.report_type_id ? await ReportType.findByPk(report.report_type_id) : null);
       if (rt) {
         const reviewer = await User.findOne({ where: { role: 'reviewer', department_id: rt.department_id } });
     if (reviewer) await createNotification({ user_id: reviewer.id, type: 'New Report Submitted', payload: { reportId: report.id, reportTitle: title || report.title || '', from: req.user.id, toEmail: reviewer.email, title: 'New Report Submitted', message: `${req.user.full_name || 'A user'} submitted a new report: ${title || report.title || `#${report.id}`}` }, sendEmail: false });
       }
+  if (deliverable) {
+    deliverable.report_id = report.id;
+    deliverable.status = 'Submitted';
+    await deliverable.save();
+  }
   res.json(report);
   } catch (err) {
     console.error(err);
@@ -150,8 +196,9 @@ router.get('/', async (req, res) => {
       where,
       order: [['created_at','DESC']],
       include: [
-        { model: User, attributes: ['id','full_name','email','department_id'] },
-        { model: ReportType, include: [{ model: Department }] }
+        { model: User, attributes: ['id','full_name','email','department_id','team_id'] },
+        { model: ReportType, include: [{ model: Department }] },
+        { model: Deliverable }
       ]
     });
     // map to frontend-friendly shape
@@ -172,6 +219,9 @@ router.get('/', async (req, res) => {
       approvedBy: r.approved_by || null,
       approvedDate: r.approved_at || null,
       approvalComments: r.approval_comments || null,
+      deliverableId: r.deliverable_id,
+      deliverableStatus: r.Deliverable ? r.Deliverable.status : null,
+      teamId: r.team_id,
     }));
     res.json(mapped);
   } catch (err) {

@@ -12,12 +12,16 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [recentReports, setRecentReports] = useState<any[]>([]);
   const [stats, setStats] = useState<any | null>(null);
+  const [upcomingDeliverables, setUpcomingDeliverables] = useState<any[]>([]);
   useEffect(() => {
     let mounted = true;
     api.get('/reports')
       .then((res) => { if (mounted) setRecentReports((res.data || []).slice(0,4)); })
       .catch(() => {});
     api.get('/stats').then((r) => { if (mounted) setStats(r.data); }).catch(() => {});
+    api.get('/deliverables', { params: { status: 'Pending' } })
+      .then((res) => { if (mounted) setUpcomingDeliverables((res.data || []).slice(0,3)); })
+      .catch(() => {});
     return () => { mounted = false };
   }, []);
   return (
@@ -133,6 +137,30 @@ export default function Dashboard() {
           <Button size="lg" variant="secondary" className="bg-white text-primary hover:bg-white/90" onClick={() => navigate('/reports?openSubmit=1')}>
             Submit Report
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Upcoming Deliverables</CardTitle>
+          <CardDescription>Stay ahead of your scheduling commitments</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {upcomingDeliverables.map((deliverable) => (
+            <div key={deliverable.id} className="flex items-center justify-between p-4 border rounded-lg">
+              <div>
+                <p className="font-semibold">{deliverable.report_type || deliverable.schedule?.name || `Deliverable #${deliverable.id}`}</p>
+                <p className="text-sm text-muted-foreground">
+                  Due by {deliverable.due_date ? new Date(deliverable.due_date).toLocaleDateString() : '—'}
+                  {deliverable.team ? ` • ${deliverable.team}` : ''}
+                </p>
+              </div>
+              <Badge variant="secondary">{deliverable.status}</Badge>
+            </div>
+          ))}
+          {upcomingDeliverables.length === 0 && (
+            <p className="text-center text-sm text-muted-foreground py-4">No upcoming deliverables.</p>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -7,6 +7,8 @@ const Report = sequelize.define('Report', {
   description: { type: DataTypes.TEXT },
   user_id: { type: DataTypes.INTEGER },
   report_type_id: { type: DataTypes.INTEGER },
+  team_id: { type: DataTypes.INTEGER },
+  deliverable_id: { type: DataTypes.INTEGER },
   file_path: { type: DataTypes.TEXT },
   reviewed_by: { type: DataTypes.INTEGER },
   reviewed_at: { type: DataTypes.DATE },

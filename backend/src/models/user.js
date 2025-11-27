@@ -8,6 +8,7 @@ const User = sequelize.define('User', {
   full_name: { type: DataTypes.STRING, allowNull: false },
   role: { type: DataTypes.STRING, allowNull: false },
   department_id: { type: DataTypes.INTEGER },
+  team_id: { type: DataTypes.INTEGER },
   team: { type: DataTypes.STRING }
 }, {
   tableName: 'users',

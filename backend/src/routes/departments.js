@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Department, User, Report, ReportType } = require('../models');
+const { Department, User, Report, ReportType, Team } = require('../models');
 const authenticate = require('../middleware/auth');
 const requireRole = require('../middleware/roles');
 
@@ -28,8 +28,8 @@ router.get('/', async (req, res) => {
       const dept = d.toJSON();
       // members count
       const memberCount = await User.count({ where: { department_id: dept.id } });
-      // team count: distinct non-null team values
-      const teamCount = await User.count({ where: { department_id: dept.id, team: { [require('sequelize').Op.ne]: null } }, distinct: true, col: 'team' });
+      // team count: actual Team rows for this department
+      const teamCount = await Team.count({ where: { department_id: dept.id } });
       // active reports: reports linked to report types that belong to this department
       const activeReports = await Report.count({
         include: [{ model: ReportType, where: { department_id: dept.id } }]
